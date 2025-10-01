@@ -1,0 +1,37 @@
+# -------- Step 1: Base Python image for FastAPI Development --------
+FROM python:3.11-slim AS backend-dev
+
+WORKDIR /app
+
+# Copy backend-specific files
+COPY ./backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the backend code
+COPY ./backend .
+
+# -------- Step 2: Final setup for running dev environments --------
+# Using the base Python image
+FROM python:3.11-slim
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+
+# Copy FastAPI backend
+COPY --from=backend-dev /app /app
+
+# Install Node.js and NPM for frontend dev
+RUN apt-get update && apt-get install -y nodejs npm
+
+# Copy frontend files
+COPY --from=frontend-dev /app /app
+
+# Install any missing Python packages (if necessary)
+COPY ./backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose FastAPI and frontend ports
+EXPOSE 8000
+
+# Command to start FastAPI development server
+CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
